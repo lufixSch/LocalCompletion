@@ -27,6 +27,10 @@ Model switching is not supported at the moment as most local tools don't support
 
 ## Release Notes
 
+### 0.0.2
+
+- Reduce unnecessary requests
+
 ### 0.0.1
 
 - Add basic completion
