@@ -11,6 +11,12 @@ Local LLM based code completion like Copilot.
 - Save multiple API Endpoints and switch easily between them
 - Reducing requests to LLMs by saving previous responses
 
+### Roadmap
+
+- Add (optional) features to reduce LLM requests
+  - Only request new completion if input deviates from previous completion
+  - Increase time between keystrokes before requesting a new completion
+- Give LLM incentive for shorter answers depending on the input
 
 ## Extension Settings
 
