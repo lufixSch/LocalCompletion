@@ -1,0 +1,86 @@
+{
+  "name": "localcompletion",
+  "displayName": "LocalCompletion",
+  "description": "Local LLM based code completion like Copilot",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.83.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "localcompletion.select_endpoint",
+        "title": "LocalCompletion: Change API Endpoint"
+      },
+      {
+        "command": "localcompletion.toggle",
+        "title": "LocalCompletion: Toggle code completion on/off"
+      }
+    ],
+    "configuration": [
+      {
+        "title": "LocalCompletion",
+        "properties": {
+          "localcompletion.active_endpoint": {
+            "description": "The URL of any OpenAI compatible API which is then used for generating the code completion",
+            "type": "string",
+            "default": "http://localhost:5001/v1"
+          },
+          "localcompletion.endpoints": {
+            "description": "List of possible API endpoints in order to make switching easier",
+            "type": "array",
+            "default": [
+              "http://localhost:5001/v1"
+            ]
+          },
+          "localcompletion.temperature": {
+            "description": "Temperature of the LLM",
+            "type": "number",
+            "default": 0.5
+          },
+          "localcompletion.max_tokens": {
+            "description": "Maximum number of tokens in the response",
+            "type": "number",
+            "default": 100
+          }
+        }
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "webpack",
+    "watch": "webpack --watch",
+    "package": "webpack --mode production --devtool hidden-source-map",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.2",
+    "@types/node": "18.x",
+    "@types/vscode": "^1.83.0",
+    "@typescript-eslint/eslint-plugin": "^6.7.3",
+    "@typescript-eslint/parser": "^6.7.3",
+    "@vscode/test-electron": "^2.3.4",
+    "eslint": "^8.50.0",
+    "glob": "^10.3.3",
+    "mocha": "^10.2.0",
+    "ts-loader": "^9.4.4",
+    "typescript": "^5.2.2",
+    "webpack": "^5.88.2",
+    "webpack-cli": "^5.1.4"
+  },
+  "dependencies": {
+    "openai": "^4.14.1"
+  }
+}
