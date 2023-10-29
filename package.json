@@ -2,7 +2,7 @@
   "name": "localcompletion",
   "displayName": "LocalCompletion",
   "description": "Local LLM based code completion like Copilot",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "repository": {
     "type": "git",
     "url": "https://github.com/lufixSch/LocalCompletion"
@@ -27,6 +27,10 @@
       {
         "command": "localcompletion.toggle",
         "title": "LocalCompletion: Toggle code completion on/off"
+      },
+      {
+        "command": "localcompletion.regenerate",
+        "title": "LocalCompletion: Regenerate completion"
       }
     ],
     "configuration": [
@@ -54,6 +58,18 @@
             "description": "Maximum number of tokens in the response",
             "type": "number",
             "default": 100
+          },
+          "localcompletion.stop_sequences": {
+            "description": "Additional stop sequences (max. 2)",
+            "type": "array",
+            "default": [
+              "\n\n"
+            ]
+          },
+          "localcompletion.reduce_calls": {
+            "description": "Reduce API calls with various strategies",
+            "type": "boolean",
+            "default": true
           }
         }
       }

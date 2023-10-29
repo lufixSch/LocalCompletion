@@ -9,37 +9,71 @@ import {
   ProviderResult,
   Range,
   workspace,
+  InlineCompletionTriggerKind,
 } from 'vscode';
 
 import { OpenAI } from 'openai';
 import { Stream } from 'openai/streaming';
 
 export class CodeCompletions {
-  inputs: string[] = [];
-  completions: string[] = [];
+  completions: [string, string][] = [];
   maxCompletions = 10;
 
   constructor(maxCompletions: number = 10) {
     this.maxCompletions = maxCompletions;
   }
 
+  private lastLine(text: string) {
+    return text.split('\n').at(-1) || '';
+  }
+
+  /** Add new completion to history.
+   *  Remove items from history if `maxCompletions` is exceeded
+   */
   public add(input: string, completion: string) {
-    this.inputs.push(input);
-    this.completions.push(completion);
+    this.completions.unshift([input, completion]);
 
     if (this.completions.length > this.maxCompletions) {
-      this.inputs = this.inputs.slice(1, this.inputs.length);
-      this.completions = this.completions.slice(1, this.completions.length);
+      this.completions.pop();
     }
   }
 
-  public get(query: string): string | null {
-    const i = this.inputs.findIndex((val) => val === query);
-    return this.completions[i];
+  /** Get prediction from history based on the prompt
+   *
+   * *Includes the complete line! It does not start from the cursor position*
+   */
+  public get(prompt: string): string | null {
+    if (this.completions.length <= 0) {
+      return null;
+    }
+
+    const lastPrediciton = this.completions[0];
+    if ((lastPrediciton[0] + lastPrediciton[1]).includes(prompt)) {
+      console.debug('Found complete prediciton', lastPrediciton);
+
+      return this.lastLine(lastPrediciton[0]) + lastPrediciton[1];
+    }
+
+    const prediction = this.completions
+      .map((completion) => this.lastLine(completion[0]) + completion[1])
+      .find((prediction) => prediction.includes(this.lastLine(prompt)));
+
+    if (prediction === undefined) {
+      return null;
+    }
+
+    console.debug('Found partial prediction', prediction);
+
+    return prediction;
   }
 
+  /** Return complete completion history (input and completion combined) */
+  public getAll(): string[] {
+    return this.completions.map((prediction) => prediction[0] + prediction[1]);
+  }
+
+  /** Clear history */
   public clear() {
-    this.inputs = [];
     this.completions = [];
   }
 }
@@ -68,6 +102,7 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
     this.lastResponses = new CodeCompletions();
   }
 
+  /** Update variables which depend on extension settings. Should be called if the settings are changed */
   updateSettings() {
     this.enabled = workspace
       .getConfiguration('editor')
@@ -82,7 +117,8 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
     });
   }
 
-  async getCompletion(prompt: string) {
+  /** Execute completion */
+  private async getCompletion(prompt: string, stop: string[] = []) {
     return await this.client.completions.create({
       model: 'NONE',
       prompt,
@@ -93,7 +129,43 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
       max_tokens: workspace
         .getConfiguration('localcompletion')
         .get('max_tokens'),
+      stop: [
+        '\n\n\n',
+        ...stop,
+        ...workspace
+          .getConfiguration('localcompletion')
+          .get('stop_sequences', []),
+      ],
     });
+  }
+
+  /** Check if inline completion should be skipped */
+  private shouldSkip(
+    prompt: string,
+    context: InlineCompletionContext,
+    reduceCalls: boolean
+  ) {
+    // Skip if inline suggestions are disabled
+    if (
+      !workspace.getConfiguration('editor').get('inlineSuggest.enabled', true)
+    ) {
+      return true;
+    }
+
+    // Skip if autocomplete widget is visible
+    if (context.selectedCompletionInfo !== undefined) {
+      console.debug('Skip completion because Autocomplete widget is visible');
+      return true;
+    }
+
+    // Only start autocompletion on specific symbols for reduced calls
+    if (reduceCalls) {
+      const regex = new RegExp('[a-zA-Z]');
+      if (regex.test(prompt.at(-1) || '')) {
+        console.debug('Skip completion to reduce calls');
+        return true;
+      }
+    }
   }
 
   async provideInlineCompletionItems(
@@ -104,25 +176,29 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
     //@ts-ignore
     // because ASYNC and PROMISE
   ): ProviderResult<InlineCompletionItem[] | InlineCompletionList> {
-    if (!this.enabled) {
-      return null;
-    }
-
-    if (context.selectedCompletionInfo !== undefined) {
-      console.debug('Skip completion because Autocomplet widget is visible');
-      return null;
-    }
+    const reduceCalls = workspace
+      .getConfiguration('localcompletion')
+      .get('reduce_calls', true);
 
     const prompt = document.getText(
       new Range(0, 0, position.line, position.character)
     );
 
-    // check saved responses
-    const promptKey = prompt.split('\n').at(-1)?.trim() || '';
+    if (context.triggerKind === InlineCompletionTriggerKind.Automatic) {
+      if (this.shouldSkip(prompt, context, reduceCalls)) {
+        return null;
+      }
 
-    const previousResponse = this.lastResponses.get(promptKey);
-    if (previousResponse) {
-      return [new InlineCompletionItem(previousResponse)];
+      // Check previous completions
+      const previousResponse = this.lastResponses.get(prompt);
+      if (previousResponse) {
+        return [
+          new InlineCompletionItem(
+            previousResponse,
+            new Range(position.line, 0, position.line, position.character)
+          ),
+        ];
+      }
     }
 
     if (this.onGoingStream) {
@@ -152,10 +228,25 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
       completion += part.choices[0]?.text || '';
     }
 
-    if (promptKey !== '') {
-      this.lastResponses.add(promptKey, completion);
-    }
+    this.onGoingStream = undefined;
 
-    return [new InlineCompletionItem(completion)];
+    const completionHistory = this.lastResponses
+      .getAll()
+      .map(
+        (prediction) =>
+          new InlineCompletionItem(
+            prediction,
+            new Range(0, 0, position.line, position.character)
+          )
+      );
+
+    this.lastResponses.add(prompt, completion);
+
+    return [
+      new InlineCompletionItem(
+        prompt + completion,
+        new Range(0, 0, position.line, position.character)
+      ),
+    ];
   }
 }

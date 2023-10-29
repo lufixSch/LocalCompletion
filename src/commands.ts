@@ -82,7 +82,12 @@ function toggle() {
   console.debug("Toggled 'inlineSuggest.enabled'");
 }
 
+function regenerate() {
+  vscommands.executeCommand('editor.action.inlineSuggest.trigger');
+}
+
 export const commands = [
   vscommands.registerCommand('localcompletion.select_endpoint', setEndpoint),
   vscommands.registerCommand('localcompletion.toggle', toggle),
+  vscommands.registerCommand('localcompletion.regenerate', regenerate),
 ];
