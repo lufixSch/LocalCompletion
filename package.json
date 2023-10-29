@@ -3,11 +3,16 @@
   "displayName": "LocalCompletion",
   "description": "Local LLM based code completion like Copilot",
   "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lufixSch/LocalCompletion"
+  },
   "engines": {
     "vscode": "^1.83.0"
   },
   "categories": [
-    "Other"
+    "Machine Learning",
+    "Snippets"
   ],
   "activationEvents": [
     "onStartupFinished"
