@@ -108,6 +108,11 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
       return null;
     }
 
+    if (context.selectedCompletionInfo !== undefined) {
+      console.debug('Skip completion because Autocomplet widget is visible');
+      return null;
+    }
+
     const prompt = document.getText(
       new Range(0, 0, position.line, position.character)
     );
@@ -123,6 +128,11 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
     if (this.onGoingStream) {
       console.debug('Stopping ongoing completion before starting new');
       this.onGoingStream.controller.abort();
+    }
+
+    if (token?.isCancellationRequested) {
+      console.log('Completion request canceled');
+      return null;
     }
 
     this.onGoingStream = await this.getCompletion(prompt);
