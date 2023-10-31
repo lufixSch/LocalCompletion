@@ -145,13 +145,6 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
     context: InlineCompletionContext,
     reduceCalls: boolean
   ) {
-    // Skip if inline suggestions are disabled
-    if (
-      !workspace.getConfiguration('editor').get('inlineSuggest.enabled', true)
-    ) {
-      return true;
-    }
-
     // Skip if autocomplete widget is visible
     if (context.selectedCompletionInfo !== undefined) {
       console.debug('Skip completion because Autocomplete widget is visible');
@@ -185,7 +178,10 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
     );
 
     if (context.triggerKind === InlineCompletionTriggerKind.Automatic) {
-      if (this.shouldSkip(prompt, context, reduceCalls)) {
+      // Skip if inline suggestions are disabled
+      if (
+        !workspace.getConfiguration('editor').get('inlineSuggest.enabled', true)
+      ) {
         return null;
       }
 
@@ -198,6 +194,10 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
             new Range(position.line, 0, position.line, position.character)
           ),
         ];
+      }
+
+      if (this.shouldSkip(prompt, context, reduceCalls)) {
+        return null;
       }
     }
 
