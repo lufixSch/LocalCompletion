@@ -15,7 +15,10 @@ Local LLM based code completion like Copilot.
 
 - Improve (optional) features to reduce LLM requests
   - Increase time between keystrokes before requesting a new completion
-- Give LLM incentive for shorter answers depending on the input
+  - Add option (possible regex) to specify after which characters the LLM should be/not be triggered
+- Increase context
+  - Add content after cursor to prompt
+  - Add content of other files
 
 ## Extension Settings
 
@@ -33,6 +36,13 @@ The extension does not yet support a custom API key. This means it only works fo
 Model switching is not supported at the moment as most local tools don't support that property either.
 
 ## Release Notes
+
+### 0.0.4
+
+- Distinguish between single line and multiline completion by checking text after the cursor
+- Add '\n' to stop token for single line
+- Reduce repetition of already existing symbols (like '}' or ';') at the end of a completion
+- Remove completion from history for new line (most predictions where totally wrong)
 
 ### 0.0.3
 

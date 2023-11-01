@@ -47,9 +47,13 @@ export class CodeCompletions {
       return null;
     }
 
+    if (this.lastLine(prompt).trim() === '') {
+      return null;
+    }
+
     const lastPrediciton = this.completions[0];
     if ((lastPrediciton[0] + lastPrediciton[1]).includes(prompt)) {
-      console.debug('Found complete prediciton', lastPrediciton);
+      console.debug('Found complete prediciton');
 
       return this.lastLine(lastPrediciton[0]) + lastPrediciton[1];
     }
@@ -62,7 +66,7 @@ export class CodeCompletions {
       return null;
     }
 
-    console.debug('Found partial prediction', prediction);
+    console.debug('Found partial prediction');
 
     return prediction;
   }
@@ -161,6 +165,36 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
     }
   }
 
+  /**
+   * Analyze document and generate promt, lineEnding (as stop sequence) and check if single line completion should be used
+   */
+  analyzeDocument(
+    document: TextDocument,
+    position: Position
+  ): [string, string | null, boolean] {
+    const prompt = document.getText(
+      new Range(0, 0, position.line, position.character)
+    );
+    let lineEnding: string | null = document
+      .getText(
+        new Range(position.line, position.character, position.line, Infinity)
+      )
+      .trim();
+
+    // Check line ending for only '' or '\n' to trigger inline completion
+    const isSingleLineCompletion = lineEnding !== '' && lineEnding !== '}';
+
+    if (!isSingleLineCompletion) {
+      lineEnding = document
+        .getText(new Range(position.line + 1, 0, position.line + 1, Infinity))
+        .trim();
+    }
+
+    lineEnding = lineEnding === '' ? null : lineEnding;
+
+    return [prompt, lineEnding, isSingleLineCompletion];
+  }
+
   async provideInlineCompletionItems(
     document: TextDocument,
     position: Position,
@@ -173,8 +207,9 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
       .getConfiguration('localcompletion')
       .get('reduce_calls', true);
 
-    const prompt = document.getText(
-      new Range(0, 0, position.line, position.character)
+    const [prompt, lineEnding, isInlineCompletion] = this.analyzeDocument(
+      document,
+      position
     );
 
     if (context.triggerKind === InlineCompletionTriggerKind.Automatic) {
@@ -211,7 +246,15 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
       return null;
     }
 
-    this.onGoingStream = await this.getCompletion(prompt);
+    this.onGoingStream = await this.getCompletion(prompt, [
+      ...(lineEnding ? [lineEnding] : []),
+      ...(isInlineCompletion ? ['\n'] : []),
+    ]);
+
+    console.debug([
+      ...(lineEnding ? [lineEnding] : []),
+      ...(isInlineCompletion ? ['\n'] : []),
+    ]);
 
     if (token?.isCancellationRequested) {
       console.log('Completion request canceled');
@@ -229,17 +272,6 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
     }
 
     this.onGoingStream = undefined;
-
-    const completionHistory = this.lastResponses
-      .getAll()
-      .map(
-        (prediction) =>
-          new InlineCompletionItem(
-            prediction,
-            new Range(0, 0, position.line, position.character)
-          )
-      );
-
     this.lastResponses.add(prompt, completion);
 
     return [
