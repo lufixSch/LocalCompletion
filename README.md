@@ -19,6 +19,7 @@ Local LLM based code completion like Copilot.
 - Increase context
   - Add content after cursor to prompt
   - Add content of other files
+- Return multiple completions (add suggestions from history)
 
 ## Extension Settings
 

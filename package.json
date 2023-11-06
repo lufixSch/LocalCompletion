@@ -63,7 +63,7 @@
             "description": "Additional stop sequences (max. 2)",
             "type": "array",
             "default": [
-              "\n\n"
+              "\n\n\n"
             ]
           },
           "localcompletion.reduce_calls": {

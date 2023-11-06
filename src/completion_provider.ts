@@ -52,21 +52,26 @@ export class CodeCompletions {
     }
 
     const lastPrediciton = this.completions[0];
-    if ((lastPrediciton[0] + lastPrediciton[1]).includes(prompt)) {
-      console.debug('Found complete prediciton');
+    if (
+      (lastPrediciton[0] + lastPrediciton[1]).includes(prompt)
+    ) {
+      const prediciton = this.lastLine(lastPrediciton[0]) + lastPrediciton[1]
+      console.debug('Found complete prediciton', prediciton);
 
-      return this.lastLine(lastPrediciton[0]) + lastPrediciton[1];
+      return prediciton;
     }
 
     const prediction = this.completions
       .map((completion) => this.lastLine(completion[0]) + completion[1])
-      .find((prediction) => prediction.includes(this.lastLine(prompt)));
+      .find((prediction) =>
+        prediction.includes(this.lastLine(prompt))
+      );
 
     if (prediction === undefined) {
       return null;
     }
 
-    console.debug('Found partial prediction');
+    console.debug('Found partial prediction', prediction);
 
     return prediction;
   }
@@ -222,7 +227,7 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
 
       // Check previous completions
       const previousResponse = this.lastResponses.get(prompt);
-      if (previousResponse) {
+      if (previousResponse && !isInlineCompletion) {
         return [
           new InlineCompletionItem(
             previousResponse,
