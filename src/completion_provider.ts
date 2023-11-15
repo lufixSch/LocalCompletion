@@ -52,10 +52,8 @@ export class CodeCompletions {
     }
 
     const lastPrediciton = this.completions[0];
-    if (
-      (lastPrediciton[0] + lastPrediciton[1]).includes(prompt)
-    ) {
-      const prediciton = this.lastLine(lastPrediciton[0]) + lastPrediciton[1]
+    if ((lastPrediciton[0] + lastPrediciton[1]).includes(prompt)) {
+      const prediciton = this.lastLine(lastPrediciton[0]) + lastPrediciton[1];
       console.debug('Found complete prediciton', prediciton);
 
       return prediciton;
@@ -63,9 +61,7 @@ export class CodeCompletions {
 
     const prediction = this.completions
       .map((completion) => this.lastLine(completion[0]) + completion[1])
-      .find((prediction) =>
-        prediction.includes(this.lastLine(prompt))
-      );
+      .find((prediction) => prediction.includes(this.lastLine(prompt)));
 
     if (prediction === undefined) {
       return null;
@@ -126,6 +122,19 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
     });
   }
 
+  /** Async sleep */
+  async completionTimeout(): Promise<unknown> {
+    const ms = workspace
+      .getConfiguration('localcompletion')
+      .get('completion_timeout', 0);
+
+    if (ms <= 0) {
+      return 0;
+    }
+
+    return await new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
   /** Execute completion */
   private async getCompletion(prompt: string, stop: string[] = []) {
     return await this.client.completions.create({
@@ -155,8 +164,18 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
     reduceCalls: boolean
   ) {
     // Skip if autocomplete widget is visible
-    if (context.selectedCompletionInfo !== undefined) {
+    if (
+      context.selectedCompletionInfo !== undefined &&
+      workspace
+        .getConfiguration('localcompletion')
+        .get('skip_autocomplete_widget')
+    ) {
       console.debug('Skip completion because Autocomplete widget is visible');
+      console.debug(
+        workspace
+          .getConfiguration('localcompletion')
+          .get('skip_autocomplete_widget')
+      );
       return true;
     }
 
@@ -167,6 +186,15 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
         console.debug('Skip completion to reduce calls');
         return true;
       }
+    }
+  }
+
+  /** Stop running LLM completion */
+  private stopOngoingStream() {
+    if (this.onGoingStream) {
+      console.debug('Completion request canceled');
+      this.onGoingStream.controller.abort();
+      this.onGoingStream = undefined;
     }
   }
 
@@ -241,35 +269,24 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
       }
     }
 
-    if (this.onGoingStream) {
-      console.debug('Stopping ongoing completion before starting new');
-      this.onGoingStream.controller.abort();
-    }
-
+    await this.completionTimeout();
     if (token?.isCancellationRequested) {
-      console.log('Completion request canceled');
       return null;
     }
+
+    this.stopOngoingStream();
 
     this.onGoingStream = await this.getCompletion(prompt, [
       ...(lineEnding ? [lineEnding] : []),
       ...(isInlineCompletion ? ['\n'] : []),
     ]);
 
-    console.debug([
-      ...(lineEnding ? [lineEnding] : []),
-      ...(isInlineCompletion ? ['\n'] : []),
-    ]);
+    token.onCancellationRequested(this.stopOngoingStream);
 
     if (token?.isCancellationRequested) {
-      console.log('Completion request canceled');
+      this.stopOngoingStream();
       return null;
     }
-
-    token.onCancellationRequested(() => {
-      console.log('Stopping ongoing completion because it was canceled');
-      this.onGoingStream?.controller.abort();
-    });
 
     let completion = '';
     for await (const part of this.onGoingStream) {
@@ -278,6 +295,8 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
 
     this.onGoingStream = undefined;
     this.lastResponses.add(prompt, completion);
+
+    console.debug('Displaying completion!');
 
     return [
       new InlineCompletionItem(

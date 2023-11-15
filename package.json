@@ -40,13 +40,13 @@
           "localcompletion.active_endpoint": {
             "description": "The URL of any OpenAI compatible API which is then used for generating the code completion",
             "type": "string",
-            "default": "http://localhost:5001/v1"
+            "default": "http://localhost:5000/v1"
           },
           "localcompletion.endpoints": {
             "description": "List of possible API endpoints in order to make switching easier",
             "type": "array",
             "default": [
-              "http://localhost:5001/v1"
+              "http://localhost:5000/v1"
             ]
           },
           "localcompletion.temperature": {
@@ -70,6 +70,16 @@
             "description": "Reduce API calls with various strategies",
             "type": "boolean",
             "default": true
+          },
+          "localcompletion.skip_autocomplete_widget": {
+            "description": "Skip completion if autocomplete widget is active",
+            "type": "boolean",
+            "default": false
+          },
+          "localcompletion.completion_timeout": {
+            "description": "Minimum time between keystrokes (in ms) before sending a completion request (Reduces API calls, which are closed immedietly after)",
+            "type": "number",
+            "default": 300
           }
         }
       }
