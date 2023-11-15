@@ -2,11 +2,13 @@
   "name": "localcompletion",
   "displayName": "LocalCompletion",
   "description": "Local LLM based code completion like Copilot",
+  "publisher": "lufixSch",
   "version": "0.0.5",
   "repository": {
     "type": "git",
     "url": "https://github.com/lufixSch/LocalCompletion"
   },
+  "icon": "static/minimal_logo_dark.png",
   "engines": {
     "vscode": "^1.83.0"
   },
