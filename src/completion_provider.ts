@@ -191,10 +191,10 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
 
   /** Stop running LLM completion */
   private stopOngoingStream() {
-    if (this.onGoingStream) {
+    if (!this.onGoingStream?.controller.signal.aborted) {
       console.debug('Completion request canceled');
-      this.onGoingStream.controller.abort();
-      this.onGoingStream = undefined;
+      this.onGoingStream?.controller.abort();
+      //this.onGoingStream = undefined;
     }
   }
 
@@ -293,7 +293,6 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
       completion += part.choices[0]?.text || '';
     }
 
-    this.onGoingStream = undefined;
     this.lastResponses.add(prompt, completion);
 
     console.debug('Displaying completion!');
