@@ -29,14 +29,14 @@ Local LLM based code completion like Copilot.
 
 ## Extension Settings
 
-* `localcompletion.active_endpoint`: The URL of the API which is used for generating the code completion
-* `localcompletion.endpoints`: List of URL endpoints
-* `localcompletion.temperature`: Temperature of the LLM
-* `localcompletion.max_tokens`: Maximum number of tokens in the response
-* `localcompletion.stop_sequences`: Additional stop sequences (max. 2)
-* `localcompletion.reduce_calls`: Reduce API calls with various strategies (e.g. skip completion if last symbol was a letter)
-* `localcompletion.skip_autocomplete_widget`: Skip completion if autocomplete widget is active
-* `localcompletion.completion_timeout`: Minimum time between keystrokes (in ms) before sending a completion request (Reduces API calls, which are closed immedietly after)
+- `localcompletion.active_endpoint`: The URL of the API which is used for generating the code completion
+- `localcompletion.endpoints`: List of URL endpoints
+- `localcompletion.temperature`: Temperature of the LLM
+- `localcompletion.max_tokens`: Maximum number of tokens in the response
+- `localcompletion.stop_sequences`: Additional stop sequences (max. 2)
+- `localcompletion.reduce_calls`: Reduce API calls with various strategies (e.g. skip completion if last symbol was a letter)
+- `localcompletion.skip_autocomplete_widget`: Skip completion if autocomplete widget is active
+- `localcompletion.completion_timeout`: Minimum time between keystrokes (in ms) before sending a completion request (Reduces API calls, which are closed immedietly after)
 
 ## Known Issues
 
@@ -45,6 +45,15 @@ The extension does not yet support a custom API key. This means it only works fo
 Model switching is not supported at the moment as most local tools don't support that property either.
 
 ## Release Notes
+
+### 0.1.1
+
+- Fix race condition error which crashed the extension
+- Fix extra space at the start of single line completion
+
+### 0.1.0
+
+- Publish to Visual Studio Marketplace
 
 ### 0.0.5
 

@@ -90,6 +90,7 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
   //@ts-ignore
   client: OpenAI;
   onGoingStream: Stream<OpenAI.Completions.Completion> | undefined;
+  hasOnGoingStream = false;
 
   lastResponses: CodeCompletions;
 
@@ -193,8 +194,9 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
   private stopOngoingStream() {
     if (!this.onGoingStream?.controller.signal.aborted) {
       console.debug('Completion request canceled');
+      // console.trace('Completion request canceled!', this.onGoingStream);
+      this.hasOnGoingStream = false;
       this.onGoingStream?.controller.abort();
-      //this.onGoingStream = undefined;
     }
   }
 
@@ -208,19 +210,18 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
     const prompt = document.getText(
       new Range(0, 0, position.line, position.character)
     );
-    let lineEnding: string | null = document
-      .getText(
-        new Range(position.line, position.character, position.line, Infinity)
-      )
-      .trim();
+    let lineEnding: string | null = document.getText(
+      new Range(position.line, position.character, position.line, Infinity)
+    );
 
     // Check line ending for only '' or '\n' to trigger inline completion
-    const isSingleLineCompletion = lineEnding !== '' && lineEnding !== '}';
+    const isSingleLineCompletion =
+      lineEnding.trim() !== '' && lineEnding.trim() !== '}';
 
     if (!isSingleLineCompletion) {
-      lineEnding = document
-        .getText(new Range(position.line + 1, 0, position.line + 1, Infinity))
-        .trim();
+      lineEnding = document.getText(
+        new Range(position.line + 1, 0, position.line + 1, Infinity)
+      );
     }
 
     lineEnding = lineEnding === '' ? null : lineEnding;
@@ -276,12 +277,14 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
 
     this.stopOngoingStream();
 
+    this.hasOnGoingStream = true;
     this.onGoingStream = await this.getCompletion(prompt, [
       ...(lineEnding ? [lineEnding] : []),
       ...(isInlineCompletion ? ['\n'] : []),
     ]);
 
-    token.onCancellationRequested(this.stopOngoingStream);
+    // Needs to be called that way. Otherwise `this` is sometimes `undefined`
+    token.onCancellationRequested(() => this.stopOngoingStream());
 
     if (token?.isCancellationRequested) {
       this.stopOngoingStream();
@@ -292,10 +295,9 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
     for await (const part of this.onGoingStream) {
       completion += part.choices[0]?.text || '';
     }
+    this.hasOnGoingStream = false;
 
     this.lastResponses.add(prompt, completion);
-
-    console.debug('Displaying completion!');
 
     return [
       new InlineCompletionItem(
