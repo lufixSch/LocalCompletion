@@ -26,6 +26,11 @@ Local LLM based code completion like Copilot.
 - Improve detection of already existing symbols at the end of a completion
   - Reduce chance of repeating already existing symbols
   - Reduce completion stopping because of false detection of already existing symbols
+- Custom completion stopping
+  - Stop completion after n lines
+  - Detect bracket/brace/parenthesis imbalance and stop/don't stop
+    - Missing closing bracket -> don't stop
+    - Improve detection of already existing symbols at the end of a completion based on this
 
 ## Extension Settings
 
