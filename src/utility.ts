@@ -21,6 +21,14 @@ export class CharPairMap {
     );
   }
 
+  /** Create CharPairMap from a key-value array */
+  public static fromKeyValuePairs(charPairs: { [key: string]: string }) {
+    const charsOpen = Object.keys(charPairs);
+    const charsClose = Object.values(charPairs);
+
+    return new CharPairMap(charsOpen, charsClose);
+  }
+
   public isOpen(char: string) {
     return this.openMapping[char] !== undefined;
   }
@@ -42,34 +50,55 @@ export class CharPairMap {
 export function checkBalance(
   code: string,
   charPairs: CharPairMap = new CharPairMap()
-) {
-  const stack = [];
+): { balanced: boolean; balancedCode: string } {
+  const stack: { char: string; index: number }[] = [];
 
   for (let i = 0; i < code.length; i++) {
     const char = code[i];
     if (charPairs.isOpen(char)) {
-      stack.push(char);
+      stack.push({ char, index: i });
     } else if (charPairs.isClose(char)) {
       if (stack.length <= 0) {
-        return false;
+        return { balanced: false, balancedCode: code.slice(0, i) };
       }
 
-      const openChar = stack.pop();
+      const { char: openChar } = stack.pop() as {
+        char: string;
+        index: number;
+      };
+
       if (charPairs.getOpen(char) !== openChar) {
-        return false;
+        const { index: balancedIndex } = stack[0];
+        return { balanced: false, balancedCode: code.slice(0, balancedIndex) };
       }
     }
   }
 
   if (stack.length > 0) {
-    return false;
+    const { index: openIndex } = stack.pop() as {
+      char: string;
+      index: number;
+    };
+
+    return { balanced: false, balancedCode: code.slice(0, openIndex) };
   }
 
-  return true;
+  return { balanced: true, balancedCode: code };
 }
 
 /** Count number of lines */
-export function countLines(code: string) {
+export function countLines(code: string): number {
   const lines = code.split('\n');
   return lines.length;
+}
+
+/** Trim text to maxiumum number of lines */
+export function trimLines(code: string, maxLines: number) {
+  const lines = code.split('\n');
+
+  if (lines.length <= maxLines) {
+    return code;
+  }
+
+  return lines.slice(0, maxLines).join('\n');
 }

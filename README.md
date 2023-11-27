@@ -31,6 +31,9 @@ Local LLM based code completion like Copilot.
   - Detect bracket/brace/parenthesis imbalance and stop/don't stop
     - Missing closing bracket -> don't stop
     - Improve detection of already existing symbols at the end of a completion based on this
+- First line preview
+  - Preview the first line (and maybe more) of the completion while completion is still ongoing
+- Enable/Disable llm completion for specific filetypes
 
 ## Extension Settings
 
@@ -41,7 +44,7 @@ Local LLM based code completion like Copilot.
 - `localcompletion.stop_sequences`: Additional stop sequences (max. 2)
 - `localcompletion.reduce_calls`: Reduce API calls with various strategies (e.g. skip completion if last symbol was a letter)
 - `localcompletion.skip_autocomplete_widget`: Skip completion if autocomplete widget is active
-- `localcompletion.completion_timeout`: Minimum time between keystrokes (in ms) before sending a completion request (Reduces API calls, which are closed immedietly after)
+- `localcompletion.completion_timeout`: Minimum time between keystrokes (in ms) before sending a completion request (Reduces API calls, which are closed immediately after)
 
 ## Known Issues
 

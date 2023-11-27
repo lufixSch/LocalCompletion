@@ -15,6 +15,7 @@ import {
 import { OpenAI } from 'openai';
 import { Stream } from 'openai/streaming';
 import { CodeCompletions } from './data';
+import { CharPairMap, checkBalance, trimLines, countLines } from './utility';
 
 export class LLMCompletionProvider implements InlineCompletionItemProvider {
   apiEndpoint = 'http://localhost:5001/v1';
@@ -123,6 +124,32 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
     }
   }
 
+  /** Check if inline completion should be stopped */
+  private shouldStop(
+    response: string,
+    maxLines: number,
+    charPairs: CharPairMap
+  ): { shouldStop: boolean; trimmedResponse: string } {
+    if (countLines(response) <= maxLines) {
+      return { shouldStop: false, trimmedResponse: '' };
+    }
+
+    const { balanced, balancedCode } = checkBalance(response, charPairs);
+    console.debug('Original Code: ', response);
+    console.debug('Balanced Code: ', balancedCode, balanced);
+
+    if (!balanced) {
+      if (countLines(balancedCode) <= maxLines) {
+        return { shouldStop: false, trimmedResponse: '' };
+      }
+
+      return { shouldStop: true, trimmedResponse: balancedCode };
+    }
+
+    const trimmedResponse = trimLines(response, maxLines);
+    return { shouldStop: true, trimmedResponse };
+  }
+
   /** Stop running LLM completion */
   private stopOngoingStream() {
     if (!this.onGoingStream?.controller.signal.aborted) {
@@ -225,8 +252,28 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
     }
 
     let completion = '';
+    const charPairs = CharPairMap.fromKeyValuePairs(
+      workspace.getConfiguration('localcompletion').get('char_pairs', {})
+    );
+    const maxLines = workspace
+      .getConfiguration('localcompletion')
+      .get('max_lines', 5);
+
     for await (const part of this.onGoingStream) {
       completion += part.choices[0]?.text || '';
+
+      const { shouldStop, trimmedResponse } = this.shouldStop(
+        completion,
+        maxLines,
+        charPairs
+      );
+      if (shouldStop) {
+        // Stop completion
+        this.stopOngoingStream();
+
+        completion = trimmedResponse;
+        break;
+      }
     }
     this.hasOnGoingStream = false;
 
