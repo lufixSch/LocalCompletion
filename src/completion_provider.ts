@@ -128,7 +128,8 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
   private shouldStop(
     response: string,
     maxLines: number,
-    charPairs: CharPairMap
+    charPairs: CharPairMap,
+    stopSequences: string[]
   ): { shouldStop: boolean; trimmedResponse: string } {
     if (countLines(response) <= maxLines) {
       return { shouldStop: false, trimmedResponse: '' };
@@ -145,6 +146,23 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
 
       return { shouldStop: true, trimmedResponse: balancedCode };
     }
+
+    // const unbalancedCode = response.replace(balancedCode, '');
+    // const stopSequence = stopSequences.find((s) => unbalancedCode.includes(s));
+    // if (stopSequence) {
+    //   console.debug(
+    //     'Stop sequence found: ',
+    //     stopSequence,
+    //     ' at: ',
+    //     unbalancedCode
+    //   );
+
+    //   const trimmedResponse = response.slice(
+    //     0,
+    //     1 + response.indexOf(stopSequence)
+    //   );
+    //   return { shouldStop: true, trimmedResponse };
+    // }
 
     const trimmedResponse = trimLines(response, maxLines);
     return { shouldStop: true, trimmedResponse };
@@ -175,8 +193,7 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
     );
 
     // Check line ending for only '' or '\n' to trigger inline completion
-    const isSingleLineCompletion =
-      lineEnding.trim() !== '' && lineEnding.trim() !== '}';
+    const isSingleLineCompletion = lineEnding.trim() !== '';
 
     if (!isSingleLineCompletion) {
       lineEnding = document.getText(
@@ -238,10 +255,10 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
     this.stopOngoingStream();
 
     this.hasOnGoingStream = true;
-    this.onGoingStream = await this.getCompletion(prompt, [
-      ...(lineEnding ? [lineEnding] : []),
-      ...(isInlineCompletion ? ['\n'] : []),
-    ]);
+    this.onGoingStream = await this.getCompletion(
+      prompt,
+      isInlineCompletion ? ['\n'] : []
+    );
 
     // Needs to be called that way. Otherwise `this` is sometimes `undefined`
     token.onCancellationRequested(() => this.stopOngoingStream());
@@ -265,7 +282,8 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
       const { shouldStop, trimmedResponse } = this.shouldStop(
         completion,
         maxLines,
-        charPairs
+        charPairs,
+        lineEnding ? [lineEnding] : []
       );
       if (shouldStop) {
         // Stop completion
