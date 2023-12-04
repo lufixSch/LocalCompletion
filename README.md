@@ -34,6 +34,7 @@ Local LLM based code completion like Copilot.
 - First line preview
   - Preview the first line (and maybe more) of the completion while completion is still ongoing
 - Enable/Disable llm completion for specific filetypes
+- Fix Error where completion is not diplayed
 
 ## Extension Settings
 
@@ -53,6 +54,10 @@ The extension does not yet support a custom API key. This means it only works fo
 Model switching is not supported at the moment as most local tools don't support that property either.
 
 ## Release Notes
+
+### 0.1.2 (WIP)
+
+- Add dynamic stopping based on line count and code balance
 
 ### 0.1.1
 
