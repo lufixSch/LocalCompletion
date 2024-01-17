@@ -201,14 +201,17 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
       }
 
       // Check previous completions
-      const previousResponse = this.lastResponses.get(prompt);
-      if (previousResponse && !isInlineCompletion) {
-        return [
-          new InlineCompletionItem(
-            previousResponse,
-            new Range(position.line, 0, position.line, position.character)
-          ),
-        ];
+      const previousResponses = this.lastResponses.get(prompt);
+      if (previousResponses && !isInlineCompletion) {
+        return new InlineCompletionList(
+          previousResponses.map(
+            (res) =>
+              new InlineCompletionItem(
+                res,
+                new Range(position.line, 0, position.line, position.character)
+              )
+          )
+        );
       }
 
       if (this.shouldSkip(prompt, context, reduceCalls)) {
@@ -261,11 +264,11 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
 
     this.lastResponses.add(prompt, completion);
 
-    return [
+    return new InlineCompletionList([
       new InlineCompletionItem(
         prompt + completion,
         new Range(0, 0, position.line, position.character)
       ),
-    ];
+    ]);
   }
 }

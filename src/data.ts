@@ -25,7 +25,7 @@ export class CodeCompletions {
    *
    * *Includes the complete line! It does not start from the cursor position*
    */
-  public get(prompt: string): string | null {
+  public get(prompt: string): string[] | null {
     if (this.completions.length <= 0) {
       return null;
     }
@@ -35,24 +35,35 @@ export class CodeCompletions {
     }
 
     const lastPrediciton = this.completions[0];
-    if ((lastPrediciton[0] + lastPrediciton[1]).includes(prompt)) {
-      const prediciton = this.lastLine(lastPrediciton[0]) + lastPrediciton[1];
-      console.debug('Found complete prediciton', prediciton);
-
-      return prediciton;
+    const lastCompletePrediction = lastPrediciton[0] + lastPrediciton[1];
+    let completePrediction = null;
+    if (
+      lastCompletePrediction.includes(prompt) &&
+      !lastCompletePrediction.endsWith(prompt)
+    ) {
+      completePrediction = this.lastLine(lastPrediciton[0]) + lastPrediciton[1];
+      console.debug('Found complete prediciton', completePrediction);
     }
 
-    const prediction = this.completions
+    let predictions = this.completions
       .map((completion) => this.lastLine(completion[0]) + completion[1])
-      .find((prediction) => prediction.includes(this.lastLine(prompt)));
+      .filter(
+        (prediction) =>
+          prediction.includes(this.lastLine(prompt)) &&
+          !prediction.endsWith(this.lastLine(prompt))
+      );
 
-    if (prediction === undefined) {
+    if (completePrediction) {
+      predictions = [completePrediction, ...predictions];
+    }
+
+    if (predictions.length === 0) {
       return null;
     }
 
-    console.debug('Found partial prediction', prediction);
+    console.debug('Found partial predictions');
 
-    return prediction;
+    return predictions;
   }
 
   /** Return complete completion history (input and completion combined) */
