@@ -15,7 +15,7 @@ import {
 import { OpenAI } from 'openai';
 import { Stream } from 'openai/streaming';
 import { CodeCompletions } from './data';
-import { trimLines, countLines } from './utility';
+import { trimLines, countLines, trimSpacesEnd } from './utility';
 
 export class LLMCompletionProvider implements InlineCompletionItemProvider {
   apiEndpoint = 'http://localhost:5001/v1';
@@ -187,7 +187,7 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
       .getConfiguration('localcompletion')
       .get('reduce_calls', true);
 
-    const [prompt, lineEnding, isInlineCompletion] = this.analyzeDocument(
+    let [prompt, lineEnding, isInlineCompletion] = this.analyzeDocument(
       document,
       position
     );
@@ -219,6 +219,10 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
       }
     }
 
+    // Trim spaces (Improves performance on some models)
+    const { trimmed, whitespace } = trimSpacesEnd(prompt);
+    const trimmedPrompt = trimmed;
+
     await this.completionTimeout();
     if (token?.isCancellationRequested) {
       return null;
@@ -227,7 +231,7 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
     this.stopOngoingStream();
 
     this.hasOnGoingStream = true;
-    this.onGoingStream = await this.getCompletion(prompt, [
+    this.onGoingStream = await this.getCompletion(trimmedPrompt, [
       ...(isInlineCompletion ? ['\n'] : []),
       ...(lineEnding ? [lineEnding] : []),
     ]);
@@ -261,6 +265,12 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
       }
     }
     this.hasOnGoingStream = false;
+
+    // Compare/Remove whitespaces from completion start
+    console.log(whitespace, completion.startsWith(whitespace));
+    if (whitespace !== '' && completion.startsWith(whitespace)) {
+      completion = completion.slice(whitespace.length, completion.length);
+    }
 
     this.lastResponses.add(prompt, completion);
 
