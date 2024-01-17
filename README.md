@@ -27,7 +27,6 @@ Local LLM based code completion like Copilot.
   - Reduce chance of repeating already existing symbols
   - Reduce completion stopping because of false detection of already existing symbols
 - Custom completion stopping
-  - Stop completion after n lines
   - Detect bracket/brace/parenthesis imbalance and stop/don't stop
     - Missing closing bracket -> don't stop
     - Improve detection of already existing symbols at the end of a completion based on this
@@ -46,6 +45,7 @@ Local LLM based code completion like Copilot.
 - `localcompletion.reduce_calls`: Reduce API calls with various strategies (e.g. skip completion if last symbol was a letter)
 - `localcompletion.skip_autocomplete_widget`: Skip completion if autocomplete widget is active
 - `localcompletion.completion_timeout`: Minimum time between keystrokes (in ms) before sending a completion request (Reduces API calls, which are closed immediately after)
+- `localcompletion.max_lines`: Maximum number of lines in the response (empty lines are ignored)
 
 ## Known Issues
 
@@ -55,9 +55,10 @@ Model switching is not supported at the moment as most local tools don't support
 
 ## Release Notes
 
-### 0.1.2 (WIP)
+### 0.1.2
 
-- Add dynamic stopping based on line count and code balance
+- Add maximum number of lines for completion
+- Fix leading space in completion (this time for real)
 
 ### 0.1.1
 
