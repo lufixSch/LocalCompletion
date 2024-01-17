@@ -15,7 +15,7 @@ import {
 import { OpenAI } from 'openai';
 import { Stream } from 'openai/streaming';
 import { CodeCompletions } from './data';
-import { CharPairMap, checkBalance, trimLines, countLines } from './utility';
+import { trimLines, countLines } from './utility';
 
 export class LLMCompletionProvider implements InlineCompletionItemProvider {
   apiEndpoint = 'http://localhost:5001/v1';
@@ -127,42 +127,11 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
   /** Check if inline completion should be stopped */
   private shouldStop(
     response: string,
-    maxLines: number,
-    charPairs: CharPairMap,
-    stopSequences: string[]
+    maxLines: number
   ): { shouldStop: boolean; trimmedResponse: string } {
-    if (countLines(response) <= maxLines) {
+    if (countLines(response, true) <= maxLines) {
       return { shouldStop: false, trimmedResponse: '' };
     }
-
-    const { balanced, balancedCode } = checkBalance(response, charPairs);
-    console.debug('Original Code: ', response);
-    console.debug('Balanced Code: ', balancedCode, balanced);
-
-    if (!balanced) {
-      if (countLines(balancedCode) <= maxLines) {
-        return { shouldStop: false, trimmedResponse: '' };
-      }
-
-      return { shouldStop: true, trimmedResponse: balancedCode };
-    }
-
-    // const unbalancedCode = response.replace(balancedCode, '');
-    // const stopSequence = stopSequences.find((s) => unbalancedCode.includes(s));
-    // if (stopSequence) {
-    //   console.debug(
-    //     'Stop sequence found: ',
-    //     stopSequence,
-    //     ' at: ',
-    //     unbalancedCode
-    //   );
-
-    //   const trimmedResponse = response.slice(
-    //     0,
-    //     1 + response.indexOf(stopSequence)
-    //   );
-    //   return { shouldStop: true, trimmedResponse };
-    // }
 
     const trimmedResponse = trimLines(response, maxLines);
     return { shouldStop: true, trimmedResponse };
@@ -255,10 +224,10 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
     this.stopOngoingStream();
 
     this.hasOnGoingStream = true;
-    this.onGoingStream = await this.getCompletion(
-      prompt,
-      isInlineCompletion ? ['\n'] : []
-    );
+    this.onGoingStream = await this.getCompletion(prompt, [
+      ...(isInlineCompletion ? ['\n'] : []),
+      ...(lineEnding ? [lineEnding] : []),
+    ]);
 
     // Needs to be called that way. Otherwise `this` is sometimes `undefined`
     token.onCancellationRequested(() => this.stopOngoingStream());
@@ -269,9 +238,6 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
     }
 
     let completion = '';
-    const charPairs = CharPairMap.fromKeyValuePairs(
-      workspace.getConfiguration('localcompletion').get('char_pairs', {})
-    );
     const maxLines = workspace
       .getConfiguration('localcompletion')
       .get('max_lines', 5);
@@ -281,9 +247,7 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
 
       const { shouldStop, trimmedResponse } = this.shouldStop(
         completion,
-        maxLines,
-        charPairs,
-        lineEnding ? [lineEnding] : []
+        maxLines
       );
       if (shouldStop) {
         // Stop completion

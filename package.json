@@ -59,7 +59,7 @@
           "localcompletion.max_tokens": {
             "description": "Maximum number of tokens in the response",
             "type": "number",
-            "default": 200
+            "default": 300
           },
           "localcompletion.stop_sequences": {
             "description": "Additional stop sequences (max. 2)",
@@ -69,16 +69,7 @@
           "localcompletion.max_lines": {
             "description": "Maximum number of lines in the response",
             "type": "number",
-            "default": 3
-          },
-          "localcompletion.char_pairs": {
-            "description": "Pairs of characters to check code balance (e.g. brackets)",
-            "type": "object",
-            "default": {
-              "{": "}",
-              "(": ")",
-              "[": "]"
-            }
+            "default": 5
           },
           "localcompletion.reduce_calls": {
             "description": "Reduce API calls with various strategies",

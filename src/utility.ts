@@ -87,8 +87,13 @@ export function checkBalance(
 }
 
 /** Count number of lines */
-export function countLines(code: string): number {
-  const lines = code.split('\n');
+export function countLines(code: string, skipEmpty: boolean = false): number {
+  let lines = code.split('\n');
+
+  if (skipEmpty) {
+    lines = lines.filter((val) => val.trim() !== '');
+  }
+
   return lines.length;
 }
 
