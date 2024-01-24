@@ -1,3 +1,5 @@
+import { Position, Range, TextDocument, window } from 'vscode';
+
 export class CodeCompletions {
   completions: [string, string][] = [];
   maxCompletions = 10;
@@ -74,5 +76,84 @@ export class CodeCompletions {
   /** Clear history */
   public clear() {
     this.completions = [];
+  }
+}
+
+export class PromptBuilder {
+  private fileSeperatorTemplate = '---------- ${path} ----------';
+
+  private activeFile: string;
+  private activeFilePath: string;
+  private visibleFiles: { content: string; path: string }[];
+  private lineEnding: string | null;
+  private isSingleLineCompletions: boolean;
+
+  constructor(document: TextDocument, position: Position) {
+    this.activeFile = document.getText(
+      new Range(0, 0, position.line, position.character)
+    );
+    this.activeFilePath = document.uri.fsPath;
+    const lineInfo = this.createLineEnding(document, position);
+    this.lineEnding = lineInfo.lineEnding;
+    this.isSingleLineCompletions = lineInfo.isSingleLineCompletion;
+
+    this.visibleFiles = this.getVisibleFiles();
+  }
+
+  private createLineEnding(document: TextDocument, position: Position) {
+    let lineEnding: string | null = document.getText(
+      new Range(position.line, position.character, position.line, Infinity)
+    );
+
+    // Check line ending for only '' or '\n' to trigger inline completion
+    const isSingleLineCompletion = lineEnding.trim() !== '';
+
+    if (!isSingleLineCompletion) {
+      lineEnding = document.getText(
+        new Range(position.line + 1, 0, position.line + 1, Infinity)
+      );
+    }
+
+    return {
+      lineEnding: lineEnding === '' ? null : lineEnding,
+      isSingleLineCompletion,
+    };
+  }
+
+  private getVisibleFiles() {
+    const visibleFiles = [];
+
+    for (const editor of window.visibleTextEditors) {
+      if (editor.document.uri.fsPath === this.activeFilePath) {
+        continue;
+      }
+
+      visibleFiles.push({
+        content: editor.document.getText(),
+        path: editor.document.uri.fsPath,
+      });
+    }
+
+    return visibleFiles;
+  }
+
+  getFileInfo() {
+    return {
+      activeFile: this.activeFile,
+      lineEnding: this.lineEnding,
+      isSingleLineCompletion: this.isSingleLineCompletions,
+    };
+  }
+
+  getPrompt() {
+    const files = this.visibleFiles;
+    files.push({ content: this.activeFile, path: this.activeFilePath });
+
+    return files
+      .map(
+        ({ path, content }) =>
+          `${this.fileSeperatorTemplate.replace('${path}', path)}\n${content}`
+      )
+      .join('\n\n');
   }
 }

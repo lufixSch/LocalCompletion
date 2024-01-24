@@ -15,7 +15,7 @@ import {
 
 import { OpenAI } from 'openai';
 import { Stream } from 'openai/streaming';
-import { CodeCompletions } from './data';
+import { CodeCompletions, PromptBuilder } from './data';
 import { trimLines, countLines, trimSpacesEnd } from './utility';
 import { CompletionStatusBarItem } from './ui_elements';
 
@@ -37,7 +37,9 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
   static instance() {
     if (!LLMCompletionProvider._instance) {
       //LLMCompletionProvider._instance = new LLMCompletionProvider();
-      throw Error("Tried to access LLMCompletionProvider Instance before building");
+      throw Error(
+        'Tried to access LLMCompletionProvider Instance before building'
+      );
     }
 
     return LLMCompletionProvider._instance;
@@ -200,10 +202,9 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
       .getConfiguration('localcompletion')
       .get('reduce_calls', true);
 
-    let [prompt, lineEnding, isInlineCompletion] = this.analyzeDocument(
-      document,
-      position
-    );
+    const promptBuilder = new PromptBuilder(document, position);
+    const { activeFile, lineEnding, isSingleLineCompletion } =
+      promptBuilder.getFileInfo();
 
     if (context.triggerKind === InlineCompletionTriggerKind.Automatic) {
       // Skip if inline suggestions are disabled
@@ -214,8 +215,8 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
       }
 
       // Check previous completions
-      const previousResponses = this.lastResponses.get(prompt);
-      if (previousResponses && !isInlineCompletion) {
+      const previousResponses = this.lastResponses.get(activeFile);
+      if (previousResponses && !isSingleLineCompletion) {
         return new InlineCompletionList(
           previousResponses.map(
             (res) =>
@@ -227,10 +228,19 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
         );
       }
 
-      if (this.shouldSkip(prompt, context, reduceCalls)) {
+      if (this.shouldSkip(activeFile, context, reduceCalls)) {
         return null;
       }
     }
+
+    // Get prompt depending on the configuration
+    const prompt = workspace
+      .getConfiguration('localcompletion')
+      .get('add_visible_files', false)
+      ? promptBuilder.getPrompt()
+      : activeFile;
+
+    console.log(prompt);
 
     // Trim spaces (Improves performance on some models)
     const { trimmed, whitespace } = trimSpacesEnd(prompt);
@@ -246,7 +256,7 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
     this.stopOngoingStream();
     this.hasOnGoingStream = true;
     this.onGoingStream = await this.getCompletion(trimmedPrompt, [
-      ...(isInlineCompletion ? ['\n'] : []),
+      ...(isSingleLineCompletion ? ['\n'] : []),
       ...(lineEnding ? [lineEnding] : []),
     ]);
 
@@ -281,17 +291,16 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
     this.hasOnGoingStream = false;
 
     // Compare/Remove whitespaces from completion start
-    console.log(whitespace, completion.startsWith(whitespace));
     if (whitespace !== '' && completion.startsWith(whitespace)) {
       completion = completion.slice(whitespace.length, completion.length);
     }
 
-    this.lastResponses.add(prompt, completion);
+    this.lastResponses.add(activeFile, completion);
     this.statusBarItem.setInactive();
 
     return new InlineCompletionList([
       new InlineCompletionItem(
-        prompt + completion,
+        activeFile + completion,
         new Range(0, 0, position.line, position.character)
       ),
     ]);
