@@ -76,6 +76,13 @@ function toggle() {
     .update('inlineSuggest.enabled', !enabled);
 
   LLMCompletionProvider.instance().updateSettings();
+
+  if (!enabled) {
+    LLMCompletionProvider.instance().statusBarItem.setInactive();
+  } else {
+    LLMCompletionProvider.instance().statusBarItem.setOff();
+  }
+
   window.showInformationMessage(
     `LocalCompletion ${!enabled ? 'enabled' : 'disabled'}!`
   );

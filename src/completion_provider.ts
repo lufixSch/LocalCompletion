@@ -10,12 +10,14 @@ import {
   Range,
   workspace,
   InlineCompletionTriggerKind,
+  window,
 } from 'vscode';
 
 import { OpenAI } from 'openai';
 import { Stream } from 'openai/streaming';
 import { CodeCompletions } from './data';
 import { trimLines, countLines, trimSpacesEnd } from './utility';
+import { CompletionStatusBarItem } from './ui_elements';
 
 export class LLMCompletionProvider implements InlineCompletionItemProvider {
   apiEndpoint = 'http://localhost:5001/v1';
@@ -27,19 +29,30 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
   hasOnGoingStream = false;
 
   lastResponses: CodeCompletions;
+  statusBarItem: CompletionStatusBarItem;
 
   private static _instance: LLMCompletionProvider;
+
+  /** Get singleton instance of this class */
   static instance() {
     if (!LLMCompletionProvider._instance) {
-      LLMCompletionProvider._instance = new LLMCompletionProvider();
+      //LLMCompletionProvider._instance = new LLMCompletionProvider();
+      throw Error("Tried to access LLMCompletionProvider Instance before building");
     }
 
+    return LLMCompletionProvider._instance;
+  }
+
+  /** Build a new instance of this class */
+  static build() {
+    LLMCompletionProvider._instance = new LLMCompletionProvider();
     return LLMCompletionProvider._instance;
   }
 
   constructor() {
     this.updateSettings();
     this.lastResponses = new CodeCompletions();
+    this.statusBarItem = new CompletionStatusBarItem();
   }
 
   /** Update variables which depend on extension settings. Should be called if the settings are changed */
@@ -228,8 +241,9 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
       return null;
     }
 
-    this.stopOngoingStream();
+    this.statusBarItem.setActive();
 
+    this.stopOngoingStream();
     this.hasOnGoingStream = true;
     this.onGoingStream = await this.getCompletion(trimmedPrompt, [
       ...(isInlineCompletion ? ['\n'] : []),
@@ -273,6 +287,7 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
     }
 
     this.lastResponses.add(prompt, completion);
+    this.statusBarItem.setInactive();
 
     return new InlineCompletionList([
       new InlineCompletionItem(
