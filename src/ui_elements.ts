@@ -69,6 +69,7 @@ export class EndpointPicker {
     this.inputBox.onDidAccept(() => this.addEndpoint(this.newEndpoint));
   }
 
+  /** Build Quick Pick UI for selecting an endpoint */
   buildQuickPick(endpoints: string[], activeEndpoint: string) {
     const items = endpoints.map((endpoint) => {
       return {
@@ -85,6 +86,7 @@ export class EndpointPicker {
     return quickPick;
   }
 
+  /** Build input box for adding a new endpoint */
   buildInputBox() {
     const inputBox = window.createInputBox();
     inputBox.title = 'Add API Endpoint';
@@ -93,6 +95,7 @@ export class EndpointPicker {
     return inputBox;
   }
 
+  /** Callback - Select an endpoint from the quick pick */
   selectItem(item: QuickPickItem) {
     this.quickPick.hide();
 
@@ -105,8 +108,10 @@ export class EndpointPicker {
     workspace
       .getConfiguration('localcompletion')
       .update('active_endpoint', activeEndpoint, ConfigurationTarget.Global);
+    this.completionProvider.updateSettings();
   }
 
+  /** Callback - Add a new endpoint to the list */
   addEndpoint(endpoint: string) {
     this.inputBox.hide();
 
@@ -122,8 +127,10 @@ export class EndpointPicker {
     workspace
       .getConfiguration('localcompletion')
       .update('active_endpoint', endpoint, ConfigurationTarget.Global);
+    this.completionProvider.updateSettings();
   }
 
+  /** Show the endpoint picker */
   show() {
     this.quickPick.show();
   }
