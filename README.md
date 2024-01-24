@@ -14,6 +14,7 @@ Local LLM based code completion like Copilot.
   - skiping completion depending on the last symbol
   - only posting request if no input was given for some time (can be specified in the settings)
 - Dynamically detect multi line or single line completion
+- Add other files to the completion context to improve the output
 
 ### Roadmap
 
@@ -21,7 +22,7 @@ Local LLM based code completion like Copilot.
   - Add option (possible regex) to specify after which characters the LLM should be/not be triggered
 - Increase context
   - Add content after cursor to prompt
-  - Add content of other files
+  - Add content of other (not visible) Files
 - Return multiple completions (add suggestions from history)
 - Improve detection of already existing symbols at the end of a completion
   - Reduce chance of repeating already existing symbols
@@ -33,7 +34,6 @@ Local LLM based code completion like Copilot.
 - First line preview
   - Preview the first line (and maybe more) of the completion while completion is still ongoing
 - Enable/Disable llm completion for specific filetypes
-- Fix Error where completion is not diplayed
 
 ## Extension Settings
 
@@ -46,6 +46,7 @@ Local LLM based code completion like Copilot.
 - `localcompletion.skip_autocomplete_widget`: Skip completion if autocomplete widget is active
 - `localcompletion.completion_timeout`: Minimum time between keystrokes (in ms) before sending a completion request (Reduces API calls, which are closed immediately after)
 - `localcompletion.max_lines`: Maximum number of lines in the response (empty lines are ignored)
+- `localcompletion.add_visible_files`: Add all visible files to completion context
 
 ## Known Issues
 
@@ -54,6 +55,11 @@ The extension does not yet support a custom API key. This means it only works fo
 Model switching is not supported at the moment as most local tools don't support that property either.
 
 ## Release Notes
+
+### 0.1.4
+
+- Add status bar item with feed back when completion is ongoing or deactivated
+- Add visible files to completion context (can be disabled in settings)
 
 ### 0.1.2
 
