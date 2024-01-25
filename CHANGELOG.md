@@ -1,5 +1,11 @@
 # Change Log
 
+## [Unreleased]
+
+### Added
+
+- New view for selecting additional context
+
 ## [0.1.4]
 
 - Add status bar item with feed back when completion is ongoing or deactivated
