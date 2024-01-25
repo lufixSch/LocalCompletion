@@ -21,6 +21,14 @@
   ],
   "main": "./dist/extension.js",
   "contributes": {
+    "views": {
+      "explorer": [
+        {
+          "id": "contextSelection",
+          "name": "LocalCompletion Context"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "localcompletion.select_endpoint",
@@ -90,6 +98,11 @@
             "description": "Add all visible files to completion context",
             "type": "boolean",
             "default": true
+          },
+          "localcompletion.context_files": {
+            "description": "List of files to add to completion context (should ussually not be edited manually)",
+            "type": "array",
+            "default": []
           }
         }
       }

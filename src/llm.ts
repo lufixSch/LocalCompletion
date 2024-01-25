@@ -1,4 +1,4 @@
-import OpenAI from 'openai';
+import { OpenAI } from 'openai';
 import { workspace } from 'vscode';
 
 export class LLM {
@@ -20,7 +20,7 @@ export class LLM {
     prompt: string,
     stop: string[] = [],
     temp: number | null = null,
-    max_tokens: number | null = null
+    maxTokens: number | null = null
   ) {
     return await this.client.completions.create({
       model: 'NONE',
@@ -29,8 +29,9 @@ export class LLM {
       temperature:
         temp ||
         workspace.getConfiguration('localcompletion').get('temperature'),
+      // eslint-disable-next-line @typescript-eslint/naming-convention
       max_tokens:
-        max_tokens ||
+        maxTokens ||
         workspace.getConfiguration('localcompletion').get('max_tokens'),
       stop: [
         ...stop,
@@ -46,7 +47,7 @@ export class LLM {
     prompt: string,
     stop: string[] = [],
     temp: number | null = null,
-    max_tokens: number | null = null
+    maxTokens: number | null = null
   ) {
     return await this.client.chat.completions.create({
       model: 'NONE',
@@ -58,8 +59,9 @@ export class LLM {
       temperature:
         temp ||
         workspace.getConfiguration('localcompletion').get('temperature'),
+      // eslint-disable-next-line @typescript-eslint/naming-convention
       max_tokens:
-        max_tokens ||
+        maxTokens ||
         workspace.getConfiguration('localcompletion').get('max_tokens'),
       stop: [
         ...stop,

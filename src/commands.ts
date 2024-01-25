@@ -5,7 +5,7 @@ import {
   ConfigurationTarget,
 } from 'vscode';
 import { LLMCompletionProvider } from './completion_provider';
-import { EndpointPicker } from './ui_elements';
+import { EndpointPicker } from './ui/quick_actions';
 
 function setEndpoint() {
   const endpointPicker = new EndpointPicker();

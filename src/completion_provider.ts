@@ -17,7 +17,7 @@ import { OpenAI } from 'openai';
 import { Stream } from 'openai/streaming';
 import { CodeCompletions, PromptBuilder } from './data';
 import { trimLines, countLines, trimSpacesEnd } from './utility';
-import { CompletionStatusBarItem } from './ui_elements';
+import { CompletionStatusBarItem } from './ui/status_bar_item';
 
 export class LLMCompletionProvider implements InlineCompletionItemProvider {
   apiEndpoint = 'http://localhost:5001/v1';
