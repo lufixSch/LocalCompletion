@@ -94,6 +94,7 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
       temperature: workspace
         .getConfiguration('localcompletion')
         .get('temperature'),
+      // eslint-disable-next-line @typescript-eslint/naming-convention
       max_tokens: workspace
         .getConfiguration('localcompletion')
         .get('max_tokens'),
@@ -237,10 +238,8 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
     const prompt = workspace
       .getConfiguration('localcompletion')
       .get('add_visible_files', false)
-      ? promptBuilder.getPrompt()
+      ? await promptBuilder.getPrompt()
       : activeFile;
-
-    console.log(prompt);
 
     // Trim spaces (Improves performance on some models)
     const { trimmed, whitespace } = trimSpacesEnd(prompt);

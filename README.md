@@ -22,7 +22,9 @@ Local LLM based code completion like Copilot.
   - Add option (possible regex) to specify after which characters the LLM should be/not be triggered
 - Increase context
   - Add content after cursor to prompt
-  - Add content of other (not visible) Files
+  - Workspace specific Context selection view
+    - Add token count
+    - Check directory checkbox if all files are selected
 - Return multiple completions (add suggestions from history)
 - Improve detection of already existing symbols at the end of a completion
   - Reduce chance of repeating already existing symbols

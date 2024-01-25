@@ -1,4 +1,4 @@
-import { Position, Range, TextDocument, window } from 'vscode';
+import { Position, Range, TextDocument, Uri, window, workspace } from 'vscode';
 
 export class CodeCompletions {
   completions: [string, string][] = [];
@@ -84,7 +84,6 @@ export class PromptBuilder {
 
   private activeFile: string;
   private activeFilePath: string;
-  private visibleFiles: { content: string; path: string }[];
   private lineEnding: string | null;
   private isSingleLineCompletions: boolean;
 
@@ -96,8 +95,6 @@ export class PromptBuilder {
     const lineInfo = this.createLineEnding(document, position);
     this.lineEnding = lineInfo.lineEnding;
     this.isSingleLineCompletions = lineInfo.isSingleLineCompletion;
-
-    this.visibleFiles = this.getVisibleFiles();
   }
 
   private createLineEnding(document: TextDocument, position: Position) {
@@ -137,6 +134,28 @@ export class PromptBuilder {
     return visibleFiles;
   }
 
+  private async getSelectedFiles() {
+    const contextFiles: string[] = workspace
+      .getConfiguration('localcompletion')
+      .get('context_files', []);
+
+    return (
+      await Promise.all(
+        contextFiles.map(async (path) => {
+          try {
+            return {
+              path,
+              content: await workspace.fs.readFile(Uri.file(path)),
+            };
+          } catch (e) {
+            window.showErrorMessage(`Could not read file ${path}: ${e}`);
+            return { path, content: '' };
+          }
+        })
+      )
+    ).filter((x) => x.content);
+  }
+
   getFileInfo() {
     return {
       activeFile: this.activeFile,
@@ -145,8 +164,11 @@ export class PromptBuilder {
     };
   }
 
-  getPrompt() {
-    const files = this.visibleFiles;
+  async getPrompt() {
+    const visibleFiles = this.getVisibleFiles();
+    const selectedFiles = await this.getSelectedFiles();
+
+    const files = [...selectedFiles, ...visibleFiles];
     files.push({ content: this.activeFile, path: this.activeFilePath });
 
     return files
