@@ -26,6 +26,8 @@ Local LLM based code completion like Copilot.
     - Add token count
     - Add clear all button
     - Check directory checkbox if all files are selected
+- Project Context
+  - Add complete project to context using embeddings or similar
 - Return multiple completions (add suggestions from history)
 - Improve detection of already existing symbols at the end of a completion
   - Reduce chance of repeating already existing symbols
@@ -57,3 +59,5 @@ Local LLM based code completion like Copilot.
 The extension does not yet support a custom API key. This means it only works for APIs which do not need a key.
 
 Model switching is not supported at the moment as most local tools don't support that property either.
+
+Symlinks can cause problems with additional context selection. They are not handled properly at the moment.

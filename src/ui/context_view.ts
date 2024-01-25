@@ -84,9 +84,11 @@ export class ContextSelectionProvider implements TreeDataProvider<ContextItem> {
   async getFilesInDirectory(path: string) {
     const files = await workspace.fs.readDirectory(Uri.file(path));
 
-    return files.map(([f, fileType]) => {
-      return new ContextItem(path + '/' + f, fileType === FileType.File, f);
-    });
+    return files
+      .map(([f, fileType]) => {
+        return new ContextItem(path + '/' + f, fileType === FileType.File, f);
+      })
+      .sort((a, b) => Number(a.isFile) - Number(b.isFile));
   }
 
   /** Get all files in a given directory and subdirectories as a flat array */
