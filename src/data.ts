@@ -137,7 +137,8 @@ export class PromptBuilder {
   private async getSelectedFiles() {
     const contextFiles: string[] = workspace
       .getConfiguration('localcompletion')
-      .get('context_files', []);
+      .get('context_files', [])
+      .filter((f) => f !== this.activeFilePath);
 
     return (
       await Promise.all(
