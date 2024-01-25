@@ -2,11 +2,13 @@
   "name": "localcompletion",
   "displayName": "LocalCompletion",
   "description": "Local LLM based code completion like Copilot",
-  "version": "0.0.5",
+  "publisher": "lufixSch",
+  "version": "0.1.4",
   "repository": {
     "type": "git",
     "url": "https://github.com/lufixSch/LocalCompletion"
   },
+  "icon": "static/minimal_logo_dark.png",
   "engines": {
     "vscode": "^1.83.0"
   },
@@ -57,14 +59,17 @@
           "localcompletion.max_tokens": {
             "description": "Maximum number of tokens in the response",
             "type": "number",
-            "default": 100
+            "default": 300
           },
           "localcompletion.stop_sequences": {
             "description": "Additional stop sequences (max. 2)",
             "type": "array",
-            "default": [
-              "\n\n\n"
-            ]
+            "default": []
+          },
+          "localcompletion.max_lines": {
+            "description": "Maximum number of lines in the response",
+            "type": "number",
+            "default": 5
           },
           "localcompletion.reduce_calls": {
             "description": "Reduce API calls with various strategies",
@@ -80,6 +85,11 @@
             "description": "Minimum time between keystrokes (in ms) before sending a completion request (Reduces API calls, which are closed immedietly after)",
             "type": "number",
             "default": 300
+          },
+          "localcompletion.add_visible_files": {
+            "description": "Add all visible files to completion context",
+            "type": "boolean",
+            "default": true
           }
         }
       }

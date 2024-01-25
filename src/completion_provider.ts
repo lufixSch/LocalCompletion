@@ -10,78 +10,14 @@ import {
   Range,
   workspace,
   InlineCompletionTriggerKind,
+  window,
 } from 'vscode';
 
 import { OpenAI } from 'openai';
 import { Stream } from 'openai/streaming';
-
-export class CodeCompletions {
-  completions: [string, string][] = [];
-  maxCompletions = 10;
-
-  constructor(maxCompletions: number = 10) {
-    this.maxCompletions = maxCompletions;
-  }
-
-  private lastLine(text: string) {
-    return text.split('\n').at(-1) || '';
-  }
-
-  /** Add new completion to history.
-   *  Remove items from history if `maxCompletions` is exceeded
-   */
-  public add(input: string, completion: string) {
-    this.completions.unshift([input, completion]);
-
-    if (this.completions.length > this.maxCompletions) {
-      this.completions.pop();
-    }
-  }
-
-  /** Get prediction from history based on the prompt
-   *
-   * *Includes the complete line! It does not start from the cursor position*
-   */
-  public get(prompt: string): string | null {
-    if (this.completions.length <= 0) {
-      return null;
-    }
-
-    if (this.lastLine(prompt).trim() === '') {
-      return null;
-    }
-
-    const lastPrediciton = this.completions[0];
-    if ((lastPrediciton[0] + lastPrediciton[1]).includes(prompt)) {
-      const prediciton = this.lastLine(lastPrediciton[0]) + lastPrediciton[1];
-      console.debug('Found complete prediciton', prediciton);
-
-      return prediciton;
-    }
-
-    const prediction = this.completions
-      .map((completion) => this.lastLine(completion[0]) + completion[1])
-      .find((prediction) => prediction.includes(this.lastLine(prompt)));
-
-    if (prediction === undefined) {
-      return null;
-    }
-
-    console.debug('Found partial prediction', prediction);
-
-    return prediction;
-  }
-
-  /** Return complete completion history (input and completion combined) */
-  public getAll(): string[] {
-    return this.completions.map((prediction) => prediction[0] + prediction[1]);
-  }
-
-  /** Clear history */
-  public clear() {
-    this.completions = [];
-  }
-}
+import { CodeCompletions, PromptBuilder } from './data';
+import { trimLines, countLines, trimSpacesEnd } from './utility';
+import { CompletionStatusBarItem } from './ui_elements';
 
 export class LLMCompletionProvider implements InlineCompletionItemProvider {
   apiEndpoint = 'http://localhost:5001/v1';
@@ -90,21 +26,35 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
   //@ts-ignore
   client: OpenAI;
   onGoingStream: Stream<OpenAI.Completions.Completion> | undefined;
+  hasOnGoingStream = false;
 
   lastResponses: CodeCompletions;
+  statusBarItem: CompletionStatusBarItem;
 
   private static _instance: LLMCompletionProvider;
+
+  /** Get singleton instance of this class */
   static instance() {
     if (!LLMCompletionProvider._instance) {
-      LLMCompletionProvider._instance = new LLMCompletionProvider();
+      //LLMCompletionProvider._instance = new LLMCompletionProvider();
+      throw Error(
+        'Tried to access LLMCompletionProvider Instance before building'
+      );
     }
 
+    return LLMCompletionProvider._instance;
+  }
+
+  /** Build a new instance of this class */
+  static build() {
+    LLMCompletionProvider._instance = new LLMCompletionProvider();
     return LLMCompletionProvider._instance;
   }
 
   constructor() {
     this.updateSettings();
     this.lastResponses = new CodeCompletions();
+    this.statusBarItem = new CompletionStatusBarItem();
   }
 
   /** Update variables which depend on extension settings. Should be called if the settings are changed */
@@ -189,12 +139,26 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
     }
   }
 
+  /** Check if inline completion should be stopped */
+  private shouldStop(
+    response: string,
+    maxLines: number
+  ): { shouldStop: boolean; trimmedResponse: string } {
+    if (countLines(response, true) <= maxLines) {
+      return { shouldStop: false, trimmedResponse: '' };
+    }
+
+    const trimmedResponse = trimLines(response, maxLines);
+    return { shouldStop: true, trimmedResponse };
+  }
+
   /** Stop running LLM completion */
   private stopOngoingStream() {
-    if (this.onGoingStream) {
+    if (!this.onGoingStream?.controller.signal.aborted) {
       console.debug('Completion request canceled');
-      this.onGoingStream.controller.abort();
-      this.onGoingStream = undefined;
+      // console.trace('Completion request canceled!', this.onGoingStream);
+      this.hasOnGoingStream = false;
+      this.onGoingStream?.controller.abort();
     }
   }
 
@@ -208,19 +172,17 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
     const prompt = document.getText(
       new Range(0, 0, position.line, position.character)
     );
-    let lineEnding: string | null = document
-      .getText(
-        new Range(position.line, position.character, position.line, Infinity)
-      )
-      .trim();
+    let lineEnding: string | null = document.getText(
+      new Range(position.line, position.character, position.line, Infinity)
+    );
 
     // Check line ending for only '' or '\n' to trigger inline completion
-    const isSingleLineCompletion = lineEnding !== '' && lineEnding !== '}';
+    const isSingleLineCompletion = lineEnding.trim() !== '';
 
     if (!isSingleLineCompletion) {
-      lineEnding = document
-        .getText(new Range(position.line + 1, 0, position.line + 1, Infinity))
-        .trim();
+      lineEnding = document.getText(
+        new Range(position.line + 1, 0, position.line + 1, Infinity)
+      );
     }
 
     lineEnding = lineEnding === '' ? null : lineEnding;
@@ -240,10 +202,9 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
       .getConfiguration('localcompletion')
       .get('reduce_calls', true);
 
-    const [prompt, lineEnding, isInlineCompletion] = this.analyzeDocument(
-      document,
-      position
-    );
+    const promptBuilder = new PromptBuilder(document, position);
+    const { activeFile, lineEnding, isSingleLineCompletion } =
+      promptBuilder.getFileInfo();
 
     if (context.triggerKind === InlineCompletionTriggerKind.Automatic) {
       // Skip if inline suggestions are disabled
@@ -254,34 +215,53 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
       }
 
       // Check previous completions
-      const previousResponse = this.lastResponses.get(prompt);
-      if (previousResponse && !isInlineCompletion) {
-        return [
-          new InlineCompletionItem(
-            previousResponse,
-            new Range(position.line, 0, position.line, position.character)
-          ),
-        ];
+      const previousResponses = this.lastResponses.get(activeFile);
+      if (previousResponses && !isSingleLineCompletion) {
+        return new InlineCompletionList(
+          previousResponses.map(
+            (res) =>
+              new InlineCompletionItem(
+                res,
+                new Range(position.line, 0, position.line, position.character)
+              )
+          )
+        );
       }
 
-      if (this.shouldSkip(prompt, context, reduceCalls)) {
+      if (this.shouldSkip(activeFile, context, reduceCalls)) {
         return null;
       }
     }
+
+    // Get prompt depending on the configuration
+    const prompt = workspace
+      .getConfiguration('localcompletion')
+      .get('add_visible_files', false)
+      ? promptBuilder.getPrompt()
+      : activeFile;
+
+    console.log(prompt);
+
+    // Trim spaces (Improves performance on some models)
+    const { trimmed, whitespace } = trimSpacesEnd(prompt);
+    const trimmedPrompt = trimmed;
 
     await this.completionTimeout();
     if (token?.isCancellationRequested) {
       return null;
     }
 
-    this.stopOngoingStream();
+    this.statusBarItem.setActive();
 
-    this.onGoingStream = await this.getCompletion(prompt, [
+    this.stopOngoingStream();
+    this.hasOnGoingStream = true;
+    this.onGoingStream = await this.getCompletion(trimmedPrompt, [
+      ...(isSingleLineCompletion ? ['\n'] : []),
       ...(lineEnding ? [lineEnding] : []),
-      ...(isInlineCompletion ? ['\n'] : []),
     ]);
 
-    token.onCancellationRequested(this.stopOngoingStream);
+    // Needs to be called that way. Otherwise `this` is sometimes `undefined`
+    token.onCancellationRequested(() => this.stopOngoingStream());
 
     if (token?.isCancellationRequested) {
       this.stopOngoingStream();
@@ -289,20 +269,40 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
     }
 
     let completion = '';
+    const maxLines = workspace
+      .getConfiguration('localcompletion')
+      .get('max_lines', 5);
+
     for await (const part of this.onGoingStream) {
       completion += part.choices[0]?.text || '';
+
+      const { shouldStop, trimmedResponse } = this.shouldStop(
+        completion,
+        maxLines
+      );
+      if (shouldStop) {
+        // Stop completion
+        this.stopOngoingStream();
+
+        completion = trimmedResponse;
+        break;
+      }
+    }
+    this.hasOnGoingStream = false;
+
+    // Compare/Remove whitespaces from completion start
+    if (whitespace !== '' && completion.startsWith(whitespace)) {
+      completion = completion.slice(whitespace.length, completion.length);
     }
 
-    this.onGoingStream = undefined;
-    this.lastResponses.add(prompt, completion);
+    this.lastResponses.add(activeFile, completion);
+    this.statusBarItem.setInactive();
 
-    console.debug('Displaying completion!');
-
-    return [
+    return new InlineCompletionList([
       new InlineCompletionItem(
-        prompt + completion,
+        activeFile + completion,
         new Range(0, 0, position.line, position.character)
       ),
-    ];
+    ]);
   }
 }
