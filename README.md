@@ -50,6 +50,7 @@ Local LLM based code completion like Copilot.
 - `localcompletion.completion_timeout`: Minimum time between keystrokes (in ms) before sending a completion request (Reduces API calls, which are closed immediately after)
 - `localcompletion.max_lines`: Maximum number of lines in the response (empty lines are ignored)
 - `localcompletion.add_visible_files`: Add all visible files to completion context
+- `localcompletion.context_files`: List of files to add to completion context (should usually not be edited manually)
 
 ## Known Issues
 
