@@ -22,7 +22,12 @@ Local LLM based code completion like Copilot.
   - Add option (possible regex) to specify after which characters the LLM should be/not be triggered
 - Increase context
   - Add content after cursor to prompt
-  - Add content of other (not visible) Files
+  - Workspace specific Context selection view
+    - Add token count
+    - Add clear all button
+    - Check directory checkbox if all files are selected
+- Project Context
+  - Add complete project to context using embeddings or similar
 - Return multiple completions (add suggestions from history)
 - Improve detection of already existing symbols at the end of a completion
   - Reduce chance of repeating already existing symbols
@@ -47,63 +52,25 @@ Local LLM based code completion like Copilot.
 - `localcompletion.completion_timeout`: Minimum time between keystrokes (in ms) before sending a completion request (Reduces API calls, which are closed immediately after)
 - `localcompletion.max_lines`: Maximum number of lines in the response (empty lines are ignored)
 - `localcompletion.add_visible_files`: Add all visible files to completion context
+- `localcompletion.context_files`: List of files to add to completion context (should usually not be edited manually)
+- `localcompletion.context_gitignore`: Whether to ignore files in the `.gitignore` in the context selection view
 
 ## Known Issues
 
+### OpenAPI keys
+
 The extension does not yet support a custom API key. This means it only works for APIs which do not need a key.
+
+### Model switching
 
 Model switching is not supported at the moment as most local tools don't support that property either.
 
-## Release Notes
+### Context selection
 
-### 0.1.4
+Symlinks can cause problems with additional context selection. They are not handled properly at the moment.
 
-- Add status bar item with feed back when completion is ongoing or deactivated
-- Add visible files to completion context (can be disabled in settings)
+Selected files in the `.gitignore` are not automatically removed from the additional when "Apply .gitignore to context" is checked
 
-### 0.1.2
+### No `git` installed
 
-- Add maximum number of lines for completion
-- Fix leading space in completion (this time for real)
-
-### 0.1.1
-
-- Fix race condition error which crashed the extension
-- Fix extra space at the start of single line completion
-
-### 0.1.0
-
-- Publish to Visual Studio Marketplace
-
-### 0.0.5
-
-- Increase time between keystrokes before requesting a new completion
-- Show inline completion even if autocomplet widget is active (can be disabled)
-- Fix bug where sometimes a running completion would not be stopped if a new completion is triggered
-
-### 0.0.4
-
-- Distinguish between single line and multiline completion by checking text after the cursor
-- Add '\n' to stop token for single line
-- Reduce repetition of already existing symbols (like '}' or ';') at the end of a completion
-- Remove completion from history for new line (most predictions where totally wrong)
-
-### 0.0.3
-
-- Rework handling of old responses
-- Only call new completion if input deviates from previous completion
-- Add new Command: **Regenerate**
-- Custom stop sequences
-- Optionally reduce API calls (enabled by default)
-
-### 0.0.2
-
-- Reduce unnecessary requests
-
-### 0.0.1
-
-- Add basic completion
-- Save `10` old responses to reduce LLM requests
-- Add some settings to configure the extension
-
----
+In order to automatically ignore files in the `.gitignore` for the context I use a package which interacts with git. At the moment, I was not able to test the extension without `git` installed. If you encounter any issues please let me know.
