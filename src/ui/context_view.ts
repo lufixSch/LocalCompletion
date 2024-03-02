@@ -16,6 +16,9 @@ import {
   ConfigurationTarget,
 } from 'vscode';
 
+import { simpleGit, SimpleGit } from 'simple-git';
+import { getContextFiles } from '../utility';
+
 export class ContextItem extends TreeItem {
   constructor(
     public path: string,
@@ -37,14 +40,12 @@ export class ContextItem extends TreeItem {
   }
 
   static checkStatus(path: string) {
-    return workspace
-      .getConfiguration('localcompletion')
-      .get<string[]>('context_files', [])
-      .includes(path);
+    return getContextFiles().includes(path);
   }
 }
 
 export class ContextSelectionProvider implements TreeDataProvider<ContextItem> {
+  private git: SimpleGit;
   private _onDidChangeTreeData: EventEmitter<
     ContextItem | undefined | null | void
   > = new EventEmitter<ContextItem | undefined | null | void>();
@@ -55,10 +56,16 @@ export class ContextSelectionProvider implements TreeDataProvider<ContextItem> {
     workspace.onDidCreateFiles(() => this._onDidChangeTreeData.fire());
     workspace.onDidDeleteFiles(() => this._onDidChangeTreeData.fire());
     workspace.onDidRenameFiles(() => this._onDidChangeTreeData.fire());
+
+    this.git = simpleGit(workspaceRoot);
   }
 
   getTreeItem(element: ContextItem): TreeItem | Thenable<TreeItem> {
     return element;
+  }
+
+  refresh(): void {
+    this._onDidChangeTreeData.fire();
   }
 
   getChildren(element?: ContextItem | undefined): Thenable<ContextItem[]> {
@@ -80,9 +87,33 @@ export class ContextSelectionProvider implements TreeDataProvider<ContextItem> {
     return Promise.resolve([]);
   }
 
+  /** Return all file in the given directory */
+  async readDirectory(
+    path: string,
+    gitignore: boolean | undefined = undefined
+  ) {
+    if (gitignore === undefined) {
+      gitignore = workspace
+        .getConfiguration('localcompletion')
+        .get<boolean>('context_gitignore');
+    }
+
+    let files = await workspace.fs.readDirectory(Uri.file(path));
+
+    if (gitignore) {
+      let ignore = await this.git.checkIgnore(
+        files.map((f) => `${path}/${f[0]}`)
+      );
+
+      files = files.filter((f) => !ignore.includes(`${path}/${f[0]}`));
+    }
+
+    return files;
+  }
+
   /** Get all files and directories at a given path */
   async getFilesInDirectory(path: string) {
-    const files = await workspace.fs.readDirectory(Uri.file(path));
+    const files = await this.readDirectory(path);
 
     return files
       .map(([f, fileType]) => {
@@ -93,7 +124,7 @@ export class ContextSelectionProvider implements TreeDataProvider<ContextItem> {
 
   /** Get all files in a given directory and subdirectories as a flat array */
   async getFilesRecursive(path: string): Promise<ContextItem[]> {
-    const files = await workspace.fs.readDirectory(Uri.file(path));
+    const files = await this.readDirectory(path);
 
     const items = await Promise.all(
       files.map(async ([f, fileType]) => {
@@ -111,16 +142,36 @@ export class ContextSelectionProvider implements TreeDataProvider<ContextItem> {
 }
 
 export class ContextSelectionView implements Disposable {
+  private workspaceRoot: string | undefined;
   private treeView: TreeView<ContextItem>;
   private provider: ContextSelectionProvider;
 
+  private static _instance: ContextSelectionView;
+
+  /** Get singleton instance of this class */
+  static instance() {
+    if (!ContextSelectionView._instance) {
+      throw Error(
+        'Tried to access ContextSelectionView Instance before building'
+      );
+    }
+
+    return ContextSelectionView._instance;
+  }
+
+  /** Build a new instance of this class */
+  static build(context: ExtensionContext) {
+    ContextSelectionView._instance = new ContextSelectionView(context);
+    return ContextSelectionView._instance;
+  }
+
   constructor(private context: ExtensionContext) {
-    const rootPath =
+    this.workspaceRoot =
       workspace.workspaceFolders && workspace.workspaceFolders.length > 0
         ? workspace.workspaceFolders[0].uri.fsPath
         : undefined;
 
-    this.provider = new ContextSelectionProvider(rootPath);
+    this.provider = new ContextSelectionProvider(this.workspaceRoot);
     this.treeView = window.createTreeView('contextSelection', {
       treeDataProvider: this.provider,
     });
@@ -159,7 +210,7 @@ export class ContextSelectionView implements Disposable {
       .get<string[]>('context_files', []);
 
     contextItems.forEach((item) => {
-      const path = item.path;
+      const path = item.path.slice(this.workspaceRoot!.length + 1);
       if (
         item.checkboxState === TreeItemCheckboxState.Checked &&
         !config.includes(path)
@@ -176,6 +227,10 @@ export class ContextSelectionView implements Disposable {
     workspace
       .getConfiguration('localcompletion')
       .update('context_files', config, ConfigurationTarget.Workspace);
+  }
+
+  refresh() {
+    this.provider.refresh();
   }
 
   dispose() {

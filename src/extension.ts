@@ -14,8 +14,16 @@ export function activate(context: vscode.ExtensionContext) {
   console.log('Version: ', context.extension.packageJSON['version']);
   LLMCompletionProvider.build();
 
+  vscode.commands.executeCommand(
+    'setContext',
+    'localcompletion:useContextGitignore',
+    vscode.workspace
+      .getConfiguration('localcompletion')
+      .get<boolean>('context_gitignore', true)
+  );
+
   context.subscriptions.push(
-    new ContextSelectionView(context),
+    ContextSelectionView.build(context),
     vscode.languages.registerInlineCompletionItemProvider(
       { pattern: '**' },
       LLMCompletionProvider.instance()

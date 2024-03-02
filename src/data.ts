@@ -1,4 +1,5 @@
 import { Position, Range, TextDocument, Uri, window, workspace } from 'vscode';
+import { getContextFiles, removeContextFile } from './utility';
 
 export class CodeCompletions {
   completions: [string, string][] = [];
@@ -135,10 +136,7 @@ export class PromptBuilder {
   }
 
   private async getSelectedFiles() {
-    const contextFiles: string[] = workspace
-      .getConfiguration('localcompletion')
-      .get('context_files', [])
-      .filter((f) => f !== this.activeFilePath);
+    const contextFiles: string[] = getContextFiles();
 
     return (
       await Promise.all(
@@ -149,7 +147,7 @@ export class PromptBuilder {
               content: await workspace.fs.readFile(Uri.file(path)),
             };
           } catch (e) {
-            window.showErrorMessage(`Could not read file ${path}: ${e}`);
+            removeContextFile(path);
             return { path, content: '' };
           }
         })

@@ -53,11 +53,24 @@ Local LLM based code completion like Copilot.
 - `localcompletion.max_lines`: Maximum number of lines in the response (empty lines are ignored)
 - `localcompletion.add_visible_files`: Add all visible files to completion context
 - `localcompletion.context_files`: List of files to add to completion context (should usually not be edited manually)
+- `localcompletion.context_gitignore`: Whether to ignore files in the `.gitignore` in the context selection view
 
 ## Known Issues
 
+### OpenAPI keys
+
 The extension does not yet support a custom API key. This means it only works for APIs which do not need a key.
+
+### Model switching
 
 Model switching is not supported at the moment as most local tools don't support that property either.
 
+### Context selection
+
 Symlinks can cause problems with additional context selection. They are not handled properly at the moment.
+
+Selected files in the `.gitignore` are not automatically removed from the additional when "Apply .gitignore to context" is checked
+
+### No `git` installed
+
+In order to automatically ignore files in the `.gitignore` for the context I use a package which interacts with git. At the moment, I was not able to test the extension without `git` installed. If you encounter any issues please let me know.

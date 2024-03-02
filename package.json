@@ -29,6 +29,23 @@
         }
       ]
     },
+    "menus": {
+      "view/title": [
+        {
+          "command": "localcompletion.refresh_context_view",
+          "when": "view == contextSelection",
+          "group": "navigation"
+        },
+        {
+          "command": "localcompletion.apply_context_gitignore",
+          "when": "view == contextSelection && !localcompletion:useContextGitignore"
+        },
+        {
+          "command": "localcompletion.disable_context_gitignore",
+          "when": "view == contextSelection && localcompletion:useContextGitignore"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "localcompletion.select_endpoint",
@@ -41,6 +58,21 @@
       {
         "command": "localcompletion.regenerate",
         "title": "LocalCompletion: Regenerate completion"
+      },
+      {
+        "command": "localcompletion.refresh_context_view",
+        "title": "LocalCompletion: Refresh context view",
+        "icon": "$(extensions-refresh)"
+      },
+      {
+        "command": "localcompletion.apply_context_gitignore",
+        "title": "LocalCompletion: Apply .gitignore to context",
+        "shortTitle": "  Apply .gitignore to context"
+      },
+      {
+        "command": "localcompletion.disable_context_gitignore",
+        "title": "LocalCompletion: Disable .gitignore to context",
+        "shortTitle": "✓ Apply .gitignore to context"
       }
     ],
     "configuration": [
@@ -103,6 +135,11 @@
             "description": "List of files to add to completion context (should ussually not be edited manually)",
             "type": "array",
             "default": []
+          },
+          "localcompletion.context_gitignore": {
+            "description": "Whether to ignore files in the gitignore for context generation",
+            "type": "boolean",
+            "default": true
           }
         }
       }
@@ -135,6 +172,7 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
-    "openai": "^4.14.1"
+    "openai": "^4.14.1",
+    "simple-git": "^3.22.0"
   }
 }

@@ -1,3 +1,5 @@
+import { workspace } from 'vscode';
+
 export class CharPairMap {
   private openMapping: { [key: string]: number };
   private closeMapping: { [key: string]: number };
@@ -121,4 +123,47 @@ export function trimSpacesEnd(code: string) {
   const whitespace = code.slice(pos + 1);
 
   return { trimmed, whitespace };
+}
+
+/** Get paths of context files */
+export function getContextFiles() {
+  const workspaceRoot =
+    workspace.workspaceFolders && workspace.workspaceFolders.length > 0
+      ? workspace.workspaceFolders[0].uri.fsPath
+      : undefined;
+
+  if (!workspaceRoot) {
+    return [];
+  }
+
+  return workspace
+    .getConfiguration('localcompletion')
+    .get<string[]>('context_files', [])
+    .map((path) => `${workspaceRoot}/${path}`);
+}
+
+/** Remove path from context files */
+export function removeContextFile(path: string) {
+  const workspaceRoot =
+    workspace.workspaceFolders && workspace.workspaceFolders.length > 0
+      ? workspace.workspaceFolders[0].uri.fsPath
+      : undefined;
+
+  if (!workspaceRoot) {
+    return;
+  }
+
+  if (path.startsWith(workspaceRoot)) {
+    path = path.slice(workspaceRoot.length + 1);
+  }
+
+  const contextFiles = workspace
+    .getConfiguration('localcompletion')
+    .get<string[]>('context_files', []);
+
+  contextFiles.splice(contextFiles.indexOf(path), 1);
+
+  workspace
+    .getConfiguration('localcompletion')
+    .update('context_files', contextFiles);
 }
