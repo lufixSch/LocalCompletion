@@ -101,10 +101,17 @@ export class ContextSelectionProvider implements TreeDataProvider<ContextItem> {
     let files = await workspace.fs.readDirectory(Uri.file(path));
 
     if (gitignore) {
-      let ignore = await this.git.checkIgnore(
-        files.map((f) => `${path}/${f[0]}`)
-      );
+      let ignore: string[] = [];
 
+      try {
+        ignore = await this.git.checkIgnore(
+          files.map((f) => `${path}/${f[0]}`)
+        );
+      } catch (err: any) {
+        if (!err.message.includes('fatal: not a git repository')) {
+          throw err;
+        }
+      }
       files = files.filter((f) => !ignore.includes(`${path}/${f[0]}`));
     }
 
