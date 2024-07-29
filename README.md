@@ -4,6 +4,9 @@ Local LLM based code completion like Copilot.
 
 > This extension does not come with a built in backend for running LLMs. Instead you are able to use any existing tool that supports the OpenAI API format. Like the [Oobabooga WebUI](https://github.com/oobabooga/text-generation-webui) and many other
 
+> NOTE I stopped using Visual Studio Code and therefore also won't continue developing this extension. I will merge pull requests if needed and even fix smaller issues if necessary but there will be no new features added.
+> If you're searching for an alternative I suggest the great [continuer.dev](https://github.com/continuedev/continue) extension.
+
 ## Features
 
 - Inline (multi line) code completion
@@ -11,34 +14,10 @@ Local LLM based code completion like Copilot.
 - Save multiple API Endpoints and switch easily between them
 - Reducing requests to LLMs by
   - saving previous responses
-  - skiping completion depending on the last symbol
+  - skipping completion depending on the last symbol
   - only posting request if no input was given for some time (can be specified in the settings)
 - Dynamically detect multi line or single line completion
 - Add other files to the completion context to improve the output
-
-### Roadmap
-
-- Improve (optional) features to reduce LLM requests
-  - Add option (possible regex) to specify after which characters the LLM should be/not be triggered
-- Increase context
-  - Add content after cursor to prompt
-  - Workspace specific Context selection view
-    - Add token count
-    - Add clear all button
-    - Check directory checkbox if all files are selected
-- Project Context
-  - Add complete project to context using embeddings or similar
-- Return multiple completions (add suggestions from history)
-- Improve detection of already existing symbols at the end of a completion
-  - Reduce chance of repeating already existing symbols
-  - Reduce completion stopping because of false detection of already existing symbols
-- Custom completion stopping
-  - Detect bracket/brace/parenthesis imbalance and stop/don't stop
-    - Missing closing bracket -> don't stop
-    - Improve detection of already existing symbols at the end of a completion based on this
-- First line preview
-  - Preview the first line (and maybe more) of the completion while completion is still ongoing
-- Enable/Disable llm completion for specific filetypes
 
 ## Extension Settings
 

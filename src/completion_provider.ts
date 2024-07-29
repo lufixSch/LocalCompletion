@@ -273,7 +273,10 @@ export class LLMCompletionProvider implements InlineCompletionItemProvider {
       .get('max_lines', 5);
 
     for await (const part of this.onGoingStream) {
-      completion += part.choices[0]?.text || '';
+      completion +=
+        part.choices?.[0]?.text ||
+        //(part as unknown as { content: string }).content ||
+        '';
 
       const { shouldStop, trimmedResponse } = this.shouldStop(
         completion,
