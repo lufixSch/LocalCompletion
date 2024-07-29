@@ -4,7 +4,7 @@ Local LLM based code completion like Copilot.
 
 > This extension does not come with a built in backend for running LLMs. Instead you are able to use any existing tool that supports the OpenAI API format. Like the [Oobabooga WebUI](https://github.com/oobabooga/text-generation-webui) and many other
 
-> NOTE I stopped using Visual Studio Code and therefore also won't continue developing this extension. I will merge pull requests if needed and even fix smaller issues if necessary but there will be no new features added.
+> NOTE: I stopped using Visual Studio Code and therefore also won't continue developing this extension. I will merge pull requests if needed and even fix smaller issues if necessary but there will be no new features added.
 > If you're searching for an alternative I suggest the great [continuer.dev](https://github.com/continuedev/continue) extension.
 
 ## Features
